@@ -1,5 +1,5 @@
 blueprint:
-  name: Activation simultanée par seuils de pourcentage
+  name: Activation simultanée par seuils de pourcentage (corrigé)
   description: >
     Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
     Utilise des entités input_number pour stocker les compteurs de durée.
@@ -45,129 +45,144 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/1"  # Toutes les 5 minutes
+    minutes: "/5"  # Toutes les 5 minutes
 
 action:
-  - variables:
-      # Récupère les valeurs des entrées (avec gestion des erreurs)
-      input_values: >
-        {% set values = [] %}
-        {% for entity in input_numbers %}
-          {% if states(entity) not in ['unknown', 'unavailable'] %}
-            {% set value = states(entity) | float(default=0) %}
-            {% set values = values + [value] %}
-          {% endif %}
-        {% endfor %}
-        {{ values }}
-
-      # Compte le nombre d'entrées qui dépassent les seuils
-      count_25: >
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 25 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-
-      count_33: >
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 33 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-
-      count_66: >
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 66 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-
-      count_100: >
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value == 100 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-
-  # Récupère les valeurs actuelles des compteurs de durée
-  - variables:
-      current_count_25_duration: "{{ states(count_25_duration_entity) | int(0) }}"
-      current_count_33_duration: "{{ states(count_33_duration_entity) | int(0) }}"
-      current_count_66_duration: "{{ states(count_66_duration_entity) | int(0) }}"
-      current_count_100_duration: "{{ states(count_100_duration_entity) | int(0) }}"
-
-  # Met à jour les compteurs de durée pour chaque condition
-  - service: input_number.set_value
-    target:
-      entity_id: !input count_25_duration_entity
-    data:
-      value: >
-        {% if count_25 >= 4 %}
-          {{ current_count_25_duration + 1 }}
-        {% else %}
-          {{ 0 }}
-        {% endif %}
-
-  - service: input_number.set_value
-    target:
-      entity_id: !input count_33_duration_entity
-    data:
-      value: >
-        {% if count_33 >= 3 %}
-          {{ current_count_33_duration + 1 }}
-        {% else %}
-          {{ 0 }}
-        {% endif %}
-
-  - service: input_number.set_value
-    target:
-      entity_id: !input count_66_duration_entity
-    data:
-      value: >
-        {% if count_66 >= 2 %}
-          {{ current_count_66_duration + 1 }}
-        {% else %}
-          {{ 0 }}
-        {% endif %}
-
-  - service: input_number.set_value
-    target:
-      entity_id: !input count_100_duration_entity
-    data:
-      value: >
-        {% if count_100 >= 1 %}
-          {{ current_count_100_duration + 1 }}
-        {% else %}
-          {{ 0 }}
-        {% endif %}
-
-  # Vérifie si les conditions sont remplies et active le switch si nécessaire
   - if:
-      - condition: or
+      - condition: and
         conditions:
           - condition: template
-            value_template: "{{ states(count_100_duration_entity) | int >= 5 }}"
+            value_template: "{{ count_25_duration_entity is defined }}"
           - condition: template
-            value_template: "{{ states(count_66_duration_entity) | int >= 10 }}"
+            value_template: "{{ count_33_duration_entity is defined }}"
           - condition: template
-            value_template: "{{ states(count_33_duration_entity) | int >= 15 }}"
+            value_template: "{{ count_66_duration_entity is defined }}"
           - condition: template
-            value_template: "{{ states(count_25_duration_entity) | int >= 20 }}"
+            value_template: "{{ count_100_duration_entity is defined }}"
     then:
-      - service: switch.turn_on
+      - variables:
+          # Récupère les valeurs des entrées (avec gestion des erreurs)
+          input_values: >
+            {% set values = [] %}
+            {% for entity in input_numbers %}
+              {% if states(entity) not in ['unknown', 'unavailable'] %}
+                {% set value = states(entity) | float(default=0) %}
+                {% set values = values + [value] %}
+              {% endif %}
+            {% endfor %}
+            {{ values }}
+
+          # Compte le nombre d'entrées qui dépassent les seuils
+          count_25: >
+            {% set count = 0 %}
+            {% for value in input_values %}
+              {% if value >= 25 %}
+                {% set count = count + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ count }}
+
+          count_33: >
+            {% set count = 0 %}
+            {% for value in input_values %}
+              {% if value >= 33 %}
+                {% set count = count + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ count }}
+
+          count_66: >
+            {% set count = 0 %}
+            {% for value in input_values %}
+              {% if value >= 66 %}
+                {% set count = count + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ count }}
+
+          count_100: >
+            {% set count = 0 %}
+            {% for value in input_values %}
+              {% if value == 100 %}
+                {% set count = count + 1 %}
+              {% endif %}
+            {% endfor %}
+            {{ count }}
+
+      # Récupère les valeurs actuelles des compteurs de durée
+      - variables:
+          current_count_25_duration: "{{ states(count_25_duration_entity) | int(0) }}"
+          current_count_33_duration: "{{ states(count_33_duration_entity) | int(0) }}"
+          current_count_66_duration: "{{ states(count_66_duration_entity) | int(0) }}"
+          current_count_100_duration: "{{ states(count_100_duration_entity) | int(0) }}"
+
+      # Met à jour les compteurs de durée pour chaque condition
+      - service: input_number.set_value
         target:
-          entity_id: !input target_switch
+          entity_id: !input count_25_duration_entity
+        data:
+          value: >
+            {% if count_25 >= 4 %}
+              {{ current_count_25_duration + 5 }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_33_duration_entity
+        data:
+          value: >
+            {% if count_33 >= 3 %}
+              {{ current_count_33_duration + 5 }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_66_duration_entity
+        data:
+          value: >
+            {% if count_66 >= 2 %}
+              {{ current_count_66_duration + 5 }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_100_duration_entity
+        data:
+          value: >
+            {% if count_100 >= 1 %}
+              {{ current_count_100_duration + 5 }}
+            {% else %}
+              {{ 0 }}
+            {% endif %}
+
+      # Vérifie si les conditions sont remplies et active le switch si nécessaire
+      - if:
+          - condition: or
+            conditions:
+              - condition: template
+                value_template: "{{ states(count_100_duration_entity) | int >= 5 }}"
+              - condition: template
+                value_template: "{{ states(count_66_duration_entity) | int >= 10 }}"
+              - condition: template
+                value_template: "{{ states(count_33_duration_entity) | int >= 15 }}"
+              - condition: template
+                value_template: "{{ states(count_25_duration_entity) | int >= 20 }}"
+        then:
+          - service: switch.turn_on
+            target:
+              entity_id: !input target_switch
+        else:
+          - service: switch.turn_off
+            target:
+              entity_id: !input target_switch
     else:
-      - service: switch.turn_off
-        target:
-          entity_id: !input target_switch
+      - stop: "Erreur : Une ou plusieurs entités de compteur ne sont pas définies."
+        response_variable: error_message
 
 mode: single
