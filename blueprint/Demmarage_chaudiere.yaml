@@ -1,5 +1,5 @@
 blueprint:
-  name: Activation simultanée par seuils de pourcentage (avec persistance)
+  name: Activation simultanée par seuils de pourcentage
   description: >
     Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
     Utilise des entités input_number pour stocker les compteurs de durée.
@@ -99,10 +99,10 @@ action:
 
   # Récupère les valeurs actuelles des compteurs de durée
   - variables:
-      count_25_duration: "{{ states(count_25_duration_entity) | int(0) }}"
-      count_33_duration: "{{ states(count_33_duration_entity) | int(0) }}"
-      count_66_duration: "{{ states(count_66_duration_entity) | int(0) }}"
-      count_100_duration: "{{ states(count_100_duration_entity) | int(0) }}"
+      current_count_25_duration: "{{ states(count_25_duration_entity) | int(0) }}"
+      current_count_33_duration: "{{ states(count_33_duration_entity) | int(0) }}"
+      current_count_66_duration: "{{ states(count_66_duration_entity) | int(0) }}"
+      current_count_100_duration: "{{ states(count_100_duration_entity) | int(0) }}"
 
   # Met à jour les compteurs de durée pour chaque condition
   - service: input_number.set_value
@@ -111,9 +111,9 @@ action:
     data:
       value: >
         {% if count_25 >= 4 %}
-          {{ count_25_duration + 1 }}
+          {{ current_count_25_duration + 1 }}
         {% else %}
-          0
+          {{ 0 }}
         {% endif %}
 
   - service: input_number.set_value
@@ -122,9 +122,9 @@ action:
     data:
       value: >
         {% if count_33 >= 3 %}
-          {{ count_33_duration + 1 }}
+          {{ current_count_33_duration + 1 }}
         {% else %}
-          0
+          {{ 0 }}
         {% endif %}
 
   - service: input_number.set_value
@@ -133,9 +133,9 @@ action:
     data:
       value: >
         {% if count_66 >= 2 %}
-          {{ count_66_duration + 1 }}
+          {{ current_count_66_duration + 1 }}
         {% else %}
-          0
+          {{ 0 }}
         {% endif %}
 
   - service: input_number.set_value
@@ -144,9 +144,9 @@ action:
     data:
       value: >
         {% if count_100 >= 1 %}
-          {{ count_100_duration + 1 }}
+          {{ current_count_100_duration + 1 }}
         {% else %}
-          0
+          {{ 0 }}
         {% endif %}
 
   # Vérifie si les conditions sont remplies et active le switch si nécessaire
