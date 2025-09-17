@@ -1,0 +1,153 @@
+blueprint:
+  name: Activation par seuils de pourcentage
+  description: >
+    Active un switch si des entrées en pourcentage dépassent certains seuils pendant une durée donnée.
+    Conditions :
+    - 4 entrées ≥ 25% pendant 20 minutes.
+    - 3 entrées ≥ 33% pendant 15 minutes.
+    - 2 entrées ≥ 66% pendant 10 minutes.
+    - 1 entrée = 100% pendant 5 minutes.
+  domain: automation
+  input:
+    input_numbers:
+      name: Entrées en pourcentage
+      description: Liste des entrées de type input_number (en pourcentage) à surveiller.
+      selector:
+        entity:
+          domain: input_number
+          multiple: true
+    target_switch:
+      name: Switch à activer
+      description: Switch à activer si les conditions sont remplies.
+      selector:
+        entity:
+          domain: switch
+
+variables:
+  input_numbers: !input input_numbers
+  target_switch: !input target_switch
+
+trigger:
+  - platform: time_pattern
+    minutes: "/1"  # Toutes les minutes
+
+action:
+  - variables:
+      # Récupère les valeurs des entrées
+      input_values: >
+        {% set values = [] %}
+        {% for entity in input_numbers %}
+          {% set values = values + [states(entity) | float] %}
+        {% endfor %}
+        {{ values }}
+
+      # Compte le nombre d'entrées qui dépassent les seuils
+      count_25: >
+        {% set count = 0 %}
+        {% for value in input_values %}
+          {% if value >= 25 %}
+            {% set count = count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {{ count }}
+
+      count_33: >
+        {% set count = 0 %}
+        {% for value in input_values %}
+          {% if value >= 33 %}
+            {% set count = count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {{ count }}
+
+      count_66: >
+        {% set count = 0 %}
+        {% for value in input_values %}
+          {% if value >= 66 %}
+            {% set count = count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {{ count }}
+
+      count_100: >
+        {% set count = 0 %}
+        {% for value in input_values %}
+          {% if value == 100 %}
+            {% set count = count + 1 %}
+          {% endif %}
+        {% endfor %}
+        {{ count }}
+
+  # Vérifie les conditions et active/désactive le switch
+  - choose:
+      # Condition 1 : 4 entrées ≥ 25% pendant 20 minutes
+      - conditions:
+          - condition: template
+            value_template: "{{ count_25 >= 4 }}"
+          - condition: state
+            entity_id: !input target_switch
+            state: "off"
+            for:
+              hours: 0
+              minutes: 20
+              seconds: 0
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input target_switch
+
+      # Condition 2 : 3 entrées ≥ 33% pendant 15 minutes
+      - conditions:
+          - condition: template
+            value_template: "{{ count_33 >= 3 }}"
+          - condition: state
+            entity_id: !input target_switch
+            state: "off"
+            for:
+              hours: 0
+              minutes: 15
+              seconds: 0
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input target_switch
+
+      # Condition 3 : 2 entrées ≥ 66% pendant 10 minutes
+      - conditions:
+          - condition: template
+            value_template: "{{ count_66 >= 2 }}"
+          - condition: state
+            entity_id: !input target_switch
+            state: "off"
+            for:
+              hours: 0
+              minutes: 10
+              seconds: 0
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input target_switch
+
+      # Condition 4 : 1 entrée = 100% pendant 5 minutes
+      - conditions:
+          - condition: template
+            value_template: "{{ count_100 >= 1 }}"
+          - condition: state
+            entity_id: !input target_switch
+            state: "off"
+            for:
+              hours: 0
+              minutes: 5
+              seconds: 0
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input target_switch
+
+    # Si aucune condition n'est remplie, désactive le switch
+    default:
+      - service: switch.turn_off
+        target:
+          entity_id: !input target_switch
+
+mode: restart
