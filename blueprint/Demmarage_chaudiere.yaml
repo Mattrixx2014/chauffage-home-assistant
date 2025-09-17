@@ -17,7 +17,7 @@ blueprint:
       description: Switch à activer si les conditions sont remplies.
       selector:
         entity:
-          domain: switch
+          domain: input_boolean
     count_25_duration_entity:
       name: Entité pour stocker la durée de la condition 25%
       description: Entité input_number pour stocker count_25_duration.
@@ -100,26 +100,26 @@ action:
   # Récupère les valeurs actuelles des compteurs de durée
   - variables:
       current_count_25_duration: >
-        {% if count_25_duration_entity is defined %}
-          {{ states(count_25_duration_entity) | default(0) | int }}
+        {% if count_25_duration_entity is defined and count_25_duration_entity in states %}
+          {{ states(count_25_duration_entity) | int(default=0) }}
         {% else %}
           0
         {% endif %}
       current_count_33_duration: >
-        {% if count_33_duration_entity is defined %}
-          {{ states(count_33_duration_entity) | default(0) | int }}
+        {% if count_33_duration_entity is defined and count_33_duration_entity in states %}
+          {{ states(count_33_duration_entity) | int(default=0) }}
         {% else %}
           0
         {% endif %}
       current_count_66_duration: >
-        {% if count_66_duration_entity is defined %}
-          {{ states(count_66_duration_entity) | default(0) | int }}
+        {% if count_66_duration_entity is defined and count_66_duration_entity in states %}
+          {{ states(count_66_duration_entity) | int(default=0) }}
         {% else %}
           0
         {% endif %}
       current_count_100_duration: >
-        {% if count_100_duration_entity is defined %}
-          {{ states(count_100_duration_entity) | default(0) | int }}
+        {% if count_100_duration_entity is defined and count_100_duration_entity in states %}
+          {{ states(count_100_duration_entity) | int(default=0) }}
         {% else %}
           0
         {% endif %}
@@ -127,7 +127,7 @@ action:
   # Met à jour les compteurs de durée pour chaque condition
   - if:
       - condition: template
-        value_template: "{{ count_25_duration_entity is defined }}"
+        value_template: "{{ count_25_duration_entity is defined and count_25_duration_entity in states }}"
     then:
       - service: input_number.set_value
         target:
@@ -142,7 +142,7 @@ action:
 
   - if:
       - condition: template
-        value_template: "{{ count_33_duration_entity is defined }}"
+        value_template: "{{ count_33_duration_entity is defined and count_33_duration_entity in states }}"
     then:
       - service: input_number.set_value
         target:
@@ -157,7 +157,7 @@ action:
 
   - if:
       - condition: template
-        value_template: "{{ count_66_duration_entity is defined }}"
+        value_template: "{{ count_66_duration_entity is defined and count_66_duration_entity in states }}"
     then:
       - service: input_number.set_value
         target:
@@ -172,7 +172,7 @@ action:
 
   - if:
       - condition: template
-        value_template: "{{ count_100_duration_entity is defined }}"
+        value_template: "{{ count_100_duration_entity is defined and count_100_duration_entity in states }}"
     then:
       - service: input_number.set_value
         target:
@@ -198,11 +198,11 @@ action:
           - condition: template
             value_template: "{{ current_count_25_duration >= 20 }}"
     then:
-      - service: switch.turn_on
+      - service: input_boolean.turn_on
         target:
           entity_id: !input target_switch
     else:
-      - service: switch.turn_off
+      - service: input_boolean.turn_off
         target:
           entity_id: !input target_switch
 
