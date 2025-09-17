@@ -1,12 +1,8 @@
 blueprint:
-  name: Activation par seuils de pourcentage
+  name: Activation simultanée par seuils de pourcentage (avec persistance)
   description: >
-    Active un switch si des entrées en pourcentage dépassent certains seuils pendant une durée donnée.
-    Conditions :
-    - 4 entrées ≥ 25% pendant 20 minutes.
-    - 3 entrées ≥ 33% pendant 15 minutes.
-    - 2 entrées ≥ 66% pendant 10 minutes.
-    - 1 entrée = 100% pendant 5 minutes.
+    Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
+    Utilise des entités input_number pour stocker les compteurs de durée.
   domain: automation
   input:
     input_numbers:
@@ -22,22 +18,45 @@ blueprint:
       selector:
         entity:
           domain: switch
-
-variables:
-  input_numbers: !input input_numbers
-  target_switch: !input target_switch
+    count_25_duration_entity:
+      name: Entité pour stocker la durée de la condition 25%
+      description: Entité input_number pour stocker count_25_duration.
+      selector:
+        entity:
+          domain: input_number
+    count_33_duration_entity:
+      name: Entité pour stocker la durée de la condition 33%
+      description: Entité input_number pour stocker count_33_duration.
+      selector:
+        entity:
+          domain: input_number
+    count_66_duration_entity:
+      name: Entité pour stocker la durée de la condition 66%
+      description: Entité input_number pour stocker count_66_duration.
+      selector:
+        entity:
+          domain: input_number
+    count_100_duration_entity:
+      name: Entité pour stocker la durée de la condition 100%
+      description: Entité input_number pour stocker count_100_duration.
+      selector:
+        entity:
+          domain: input_number
 
 trigger:
   - platform: time_pattern
-    minutes: "/1"  # Toutes les minutes
+    minutes: "/1"  # Toutes les 5 minutes
 
 action:
   - variables:
-      # Récupère les valeurs des entrées
+      # Récupère les valeurs des entrées (avec gestion des erreurs)
       input_values: >
         {% set values = [] %}
         {% for entity in input_numbers %}
-          {% set values = values + [states(entity) | float] %}
+          {% if states(entity) not in ['unknown', 'unavailable'] %}
+            {% set value = states(entity) | float(default=0) %}
+            {% set values = values + [value] %}
+          {% endif %}
         {% endfor %}
         {{ values }}
 
@@ -78,76 +97,77 @@ action:
         {% endfor %}
         {{ count }}
 
-  # Vérifie les conditions et active/désactive le switch
-  - choose:
-      # Condition 1 : 4 entrées ≥ 25% pendant 20 minutes
-      - conditions:
-          - condition: template
-            value_template: "{{ count_25 >= 4 }}"
-          - condition: state
-            entity_id: !input target_switch
-            state: "off"
-            for:
-              hours: 0
-              minutes: 20
-              seconds: 0
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input target_switch
+  # Récupère les valeurs actuelles des compteurs de durée
+  - variables:
+      count_25_duration: "{{ states(count_25_duration_entity) | int(0) }}"
+      count_33_duration: "{{ states(count_33_duration_entity) | int(0) }}"
+      count_66_duration: "{{ states(count_66_duration_entity) | int(0) }}"
+      count_100_duration: "{{ states(count_100_duration_entity) | int(0) }}"
 
-      # Condition 2 : 3 entrées ≥ 33% pendant 15 minutes
-      - conditions:
-          - condition: template
-            value_template: "{{ count_33 >= 3 }}"
-          - condition: state
-            entity_id: !input target_switch
-            state: "off"
-            for:
-              hours: 0
-              minutes: 15
-              seconds: 0
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input target_switch
+  # Met à jour les compteurs de durée pour chaque condition
+  - service: input_number.set_value
+    target:
+      entity_id: !input count_25_duration_entity
+    data:
+      value: >
+        {% if count_25 >= 4 %}
+          {{ count_25_duration + 1 }}
+        {% else %}
+          0
+        {% endif %}
 
-      # Condition 3 : 2 entrées ≥ 66% pendant 10 minutes
-      - conditions:
-          - condition: template
-            value_template: "{{ count_66 >= 2 }}"
-          - condition: state
-            entity_id: !input target_switch
-            state: "off"
-            for:
-              hours: 0
-              minutes: 10
-              seconds: 0
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input target_switch
+  - service: input_number.set_value
+    target:
+      entity_id: !input count_33_duration_entity
+    data:
+      value: >
+        {% if count_33 >= 3 %}
+          {{ count_33_duration + 1 }}
+        {% else %}
+          0
+        {% endif %}
 
-      # Condition 4 : 1 entrée = 100% pendant 5 minutes
-      - conditions:
-          - condition: template
-            value_template: "{{ count_100 >= 1 }}"
-          - condition: state
-            entity_id: !input target_switch
-            state: "off"
-            for:
-              hours: 0
-              minutes: 5
-              seconds: 0
-        sequence:
-          - service: switch.turn_on
-            target:
-              entity_id: !input target_switch
+  - service: input_number.set_value
+    target:
+      entity_id: !input count_66_duration_entity
+    data:
+      value: >
+        {% if count_66 >= 2 %}
+          {{ count_66_duration + 1 }}
+        {% else %}
+          0
+        {% endif %}
 
-    # Si aucune condition n'est remplie, désactive le switch
-    default:
+  - service: input_number.set_value
+    target:
+      entity_id: !input count_100_duration_entity
+    data:
+      value: >
+        {% if count_100 >= 1 %}
+          {{ count_100_duration + 1 }}
+        {% else %}
+          0
+        {% endif %}
+
+  # Vérifie si les conditions sont remplies et active le switch si nécessaire
+  - if:
+      - condition: or
+        conditions:
+          - condition: template
+            value_template: "{{ states(count_100_duration_entity) | int >= 5 }}"
+          - condition: template
+            value_template: "{{ states(count_66_duration_entity) | int >= 10 }}"
+          - condition: template
+            value_template: "{{ states(count_33_duration_entity) | int >= 15 }}"
+          - condition: template
+            value_template: "{{ states(count_25_duration_entity) | int >= 20 }}"
+    then:
+      - service: switch.turn_on
+        target:
+          entity_id: !input target_switch
+    else:
       - service: switch.turn_off
         target:
           entity_id: !input target_switch
 
-mode: restart
+mode: single
