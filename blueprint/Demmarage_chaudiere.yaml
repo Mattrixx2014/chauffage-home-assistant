@@ -45,7 +45,7 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/5"  # Toutes les 5 minutes
+    minutes: "/1"  # Toutes les 5 minutes
 
 action:
   - if:
@@ -123,7 +123,7 @@ action:
         data:
           value: >
             {% if count_25 >= 4 %}
-              {{ current_count_25_duration + 5 }}
+              {{ current_count_25_duration + 1 }}
             {% else %}
               {{ 0 }}
             {% endif %}
@@ -134,7 +134,7 @@ action:
         data:
           value: >
             {% if count_33 >= 3 %}
-              {{ current_count_33_duration + 5 }}
+              {{ current_count_33_duration + 1 }}
             {% else %}
               {{ 0 }}
             {% endif %}
@@ -145,7 +145,7 @@ action:
         data:
           value: >
             {% if count_66 >= 2 %}
-              {{ current_count_66_duration + 5 }}
+              {{ current_count_66_duration + 1 }}
             {% else %}
               {{ 0 }}
             {% endif %}
@@ -156,7 +156,7 @@ action:
         data:
           value: >
             {% if count_100 >= 1 %}
-              {{ current_count_100_duration + 5 }}
+              {{ current_count_100_duration + 1 }}
             {% else %}
               {{ 0 }}
             {% endif %}
