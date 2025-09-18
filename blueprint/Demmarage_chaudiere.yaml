@@ -144,10 +144,10 @@ action:
              or count_66 >= seuil_66
              or count_100 >= seuil_100 }}
         sequence:
-          - service: input_boolean.turn_on
+          - service: switch.turn_on
             target:
               entity_id: "{{ switch_cible }}"
     default:
-      - service: input_boolean.turn_off
+      - service: switch.turn_off
         target:
           entity_id: "{{ switch_cible }}"
