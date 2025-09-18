@@ -104,82 +104,82 @@ action:
         {% endfor %}
         {{ count }}
 
-- alias: Mise à jour des compteurs de durée
-  if:
-    - condition: template
-      value_template: '{{ count_25_duration_entity is defined }}'
-  then:
-    - service: input_number.set_value
-      target:
-        entity_id: !input count_25_duration_entity
-      data:
-        value: >
-          {% if count_25 >= 4 %}
-            {{ current_count_25_duration + 5 }}
-          {% else %}
-            0
-          {% endif %}
+  - alias: Mise à jour des compteurs de durée
+    if:
+      - condition: template
+        value_template: '{{ count_25_duration_entity is defined }}'
+    then:
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_25_duration_entity
+        data:
+          value: >
+            {% if count_25 >= 4 %}
+              {{ current_count_25_duration + 5 }}
+            {% else %}
+              0
+            {% endif %}
 
-- alias: Mise à jour du compteur 33%
-  if:
-    - condition: template
-      value_template: '{{ count_33_duration_entity is defined }}'
-  then:
-    - service: input_number.set_value
-      target:
-        entity_id: !input count_33_duration_entity
-      data:
-        value: >
-          {% if count_33 >= 3 %}
-            {{ current_count_33_duration + 5 }}
-          {% else %}
-            0
-          {% endif %}
+  - alias: Mise à jour du compteur 33%
+    if:
+      - condition: template
+        value_template: '{{ count_33_duration_entity is defined }}'
+    then:
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_33_duration_entity
+        data:
+          value: >
+            {% if count_33 >= 3 %}
+              {{ current_count_33_duration + 5 }}
+            {% else %}
+              0
+            {% endif %}
 
-- alias: Mise à jour du compteur 66%
-  if:
-    - condition: template
-      value_template: '{{ count_66_duration_entity is defined }}'
-  then:
-    - service: input_number.set_value
-      target:
-        entity_id: !input count_66_duration_entity
-      data:
-        value: >
-          {% if count_66 >= 2 %}
-            {{ current_count_66_duration + 5 }}
-          {% else %}
-            0
-          {% endif %}
+  - alias: Mise à jour du compteur 66%
+    if:
+      - condition: template
+        value_template: '{{ count_66_duration_entity is defined }}'
+    then:
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_66_duration_entity
+        data:
+          value: >
+            {% if count_66 >= 2 %}
+              {{ current_count_66_duration + 5 }}
+            {% else %}
+              0
+            {% endif %}
 
-- alias: Mise à jour du compteur 100%
-  if:
-    - condition: template
-      value_template: '{{ count_100_duration_entity is defined }}'
-  then:
-    - service: input_number.set_value
-      target:
-        entity_id: !input count_100_duration_entity
-      data:
-        value: >
-          {% if count_100 >= 1 %}
-            {{ current_count_100_duration + 5 }}
-          {% else %}
-            0
-          {% endif %}
+  - alias: Mise à jour du compteur 100%
+    if:
+      - condition: template
+        value_template: '{{ count_100_duration_entity is defined }}'
+    then:
+      - service: input_number.set_value
+        target:
+          entity_id: !input count_100_duration_entity
+        data:
+          value: >
+            {% if count_100 >= 1 %}
+              {{ current_count_100_duration + 5 }}
+            {% else %}
+              0
+            {% endif %}
 
   - alias: Activation du switch
     if:
       - condition: or
         conditions:
           - condition: template
-            value_template: '{{ count_100_duration_entity >= 5 }}'
+            value_template: '{{ count_100_duration >= 5 }}'
           - condition: template
-            value_template: '{{ count_66_duration_entity >= 10 }}'
+            value_template: '{{ count_66_duration >= 10 }}'
           - condition: template
-            value_template: '{{ count_33_duration_entity >= 15 }}'
+            value_template: '{{ count_33_duration >= 15 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity >= 20 }}'
+            value_template: '{{ count_25_duration >= 20 }}'
     then:
       - service: input_boolean.turn_on
         target:
