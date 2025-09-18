@@ -173,13 +173,13 @@ action:
       - condition: or
         conditions:
           - condition: template
-            value_template: '{{ count_25_duration_entity >= 5 }}'
+            value_template: '{{ count_25_duration_entity | int >= 5 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity >= 10 }}'
+            value_template: '{{ count_25_duration_entity | int >= 10 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity >= 15 }}'
+            value_template: '{{ count_25_duration_entity | int>= 15 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity >= 20 }}'
+            value_template: '{{ count_25_duration_entity | int >= 20 }}'
     then:
       - service: input_boolean.turn_on
         target:
