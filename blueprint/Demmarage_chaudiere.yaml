@@ -104,13 +104,6 @@ action:
         {% endfor %}
         {{ count }}
 
-  - alias: Récupération des compteurs de durée
-    variables:
-      current_count_25_duration: '{{ states(count_25_duration_entity) | default(0) | int }}'
-      current_count_33_duration: '{{ states(count_33_duration_entity) | default(0) | int }}'
-      current_count_66_duration: '{{ states(count_66_duration_entity) | default(0) | int }}'
-      current_count_100_duration: '{{ states(count_100_duration_entity) | default(0) | int }}'
-
   - alias: Mise à jour des compteurs de durée
     if:
       - condition: template
