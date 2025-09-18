@@ -1,172 +1,121 @@
 blueprint:
-  name: Activation simultanée par seuils de pourcentage
-  description: >-
-    Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
-    Utilise des entités input_number pour stocker les compteurs de durée.
+  name: Surveiller des pourcentages et activer un switch
+  description: >
+    Surveille une liste d’input_number (en %) et incrémente des compteurs selon les seuils (25, 33, 66, 100).
+    Active ou désactive un input_boolean cible en fonction des compteurs.
   domain: automation
   input:
-    input_numbers:
-      name: Entrées en pourcentage
-      description: Liste des entrées de type input_number (en pourcentage) à surveiller.
+    surveilles:
+      name: Entités surveillées
+      description: Liste d’input_number représentant des pourcentages
       selector:
         entity:
-          domain: input_number
           multiple: true
-    target_switch:
-      name: Switch à activer
-      description: Switch à activer si les conditions sont remplies.
+          domain: input_number
+    switch_cible:
+      name: Switch cible
+      description: Input_boolean à activer/désactiver
       selector:
         entity:
           domain: input_boolean
-    count_25_duration_entity:
-      name: Entité pour stocker la durée de la condition 25%
+    compteur_25:
+      name: Compteur 25%
+      description: input_number utilisé comme compteur pour le seuil 25%
       selector:
         entity:
           domain: input_number
-    count_33_duration_entity:
-      name: Entité pour stocker la durée de la condition 33%
+    compteur_33:
+      name: Compteur 33%
+      description: input_number utilisé comme compteur pour le seuil 33%
       selector:
         entity:
           domain: input_number
-    count_66_duration_entity:
-      name: Entité pour stocker la durée de la condition 66%
+    compteur_66:
+      name: Compteur 66%
+      description: input_number utilisé comme compteur pour le seuil 66%
       selector:
         entity:
           domain: input_number
-    count_100_duration_entity:
-      name: Entité pour stocker la durée de la condition 100%
+    compteur_100:
+      name: Compteur 100%
+      description: input_number utilisé comme compteur pour le seuil 100%
       selector:
         entity:
           domain: input_number
+    valeur_seuil_activation:
+      name: Valeur seuil d’activation
+      description: Nombre minimum d’entités au-dessus d’un seuil pour activer le switch
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+
+mode: restart
 
 trigger:
   - platform: time_pattern
-    minutes: "/5"  # Toutes les 5 minutes
+    minutes: "/1"
+
+variables:
+  surveilles: !input surveilles
+  switch_cible: !input switch_cible
+  compteur_25: !input compteur_25
+  compteur_33: !input compteur_33
+  compteur_66: !input compteur_66
+  compteur_100: !input compteur_100
+  seuil_activation: !input valeur_seuil_activation
 
 action:
-  - alias: Récupération des paramètres
-    variables:
-      input_numbers: !input input_numbers
-      target_switch: !input target_switch
-      count_25_duration_entity: !input count_25_duration_entity
-      count_33_duration_entity: !input count_33_duration_entity
-      count_66_duration_entity: !input count_66_duration_entity
-      count_100_duration_entity: !input count_100_duration_entity
+  - variables:
+      count_25: >
+        {{ expand(surveilles)
+           | selectattr('state','not in',['unknown','unavailable'])
+           | map(attribute='state') | map('float')
+           | select('>',25) | list | count }}
+      count_33: >
+        {{ expand(surveilles)
+           | selectattr('state','not in',['unknown','unavailable'])
+           | map(attribute='state') | map('float')
+           | select('>',33) | list | count }}
+      count_66: >
+        {{ expand(surveilles)
+           | selectattr('state','not in',['unknown','unavailable'])
+           | map(attribute='state') | map('float')
+           | select('>',66) | list | count }}
+      count_100: >
+        {{ expand(surveilles)
+           | selectattr('state','not in',['unknown','unavailable'])
+           | map(attribute='state') | map('float')
+           | select('>=',100) | list | count }}
 
-  - alias: Récupération des données
-    variables:
-      input_values: >-
-        {% set values = [] %}
-        {% for entity in input_numbers %}
-          {% if states(entity) not in ['unknown', 'unavailable'] %}
-            {% set value = states(entity) | float(0) %}
-            {% set values = values + [value] %}
-          {% endif %}
-        {% endfor %}
-        {{ values }}
-
-  - alias: Compter les entrées dépassant les seuils
-    variables:
-      count_25: >-
-        {% set count = input_values | select('>=', 25) | list | count %}
-        {{ count }}
-      count_33: >-
-        {% set count = input_values | select('>=', 33) | list | count %}
-        {{ count }}
-      count_66: >-
-        {% set count = input_values | select('>=', 66) | list | count %}
-        {{ count }}
-      count_100: >-
-        {% set count = input_values | select('==', 100) | list | count %}
-        {{ count }}
-
-  - alias: Mise à jour du compteur 25%
-    if:
-      - condition: template
-        value_template: >-
-          {{ count_25_duration_entity != '' and states(count_25_duration_entity) not in ['unknown','unavailable',''] }}
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_25_duration_entity
-        data:
-          value: >-
-            {% if count_25 >= 4 %}
-              {{ (states(count_25_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 33%
-    if:
-      - condition: template
-        value_template: >-
-          {{ count_33_duration_entity != '' and states(count_33_duration_entity) not in ['unknown','unavailable',''] }}
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_33_duration_entity
-        data:
-          value: >-
-            {% if count_33 >= 3 %}
-              {{ (states(count_33_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 66%
-    if:
-      - condition: template
-        value_template: >-
-          {{ count_66_duration_entity != '' and states(count_66_duration_entity) not in ['unknown','unavailable',''] }}
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_66_duration_entity
-        data:
-          value: >-
-            {% if count_66 >= 2 %}
-              {{ (states(count_66_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 100%
-    if:
-      - condition: template
-        value_template: >-
-          {{ count_100_duration_entity != '' and states(count_100_duration_entity) not in ['unknown','unavailable',''] }}
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_100_duration_entity
-        data:
-          value: >-
-            {% if count_100 >= 1 %}
-              {{ (states(count_100_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Activation du switch
-    if:
-      - condition: or
-        conditions:
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 5 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 10 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 15 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 20 }}'
-    then:
-      - service: input_boolean.turn_on
-        target:
-          entity_id: !input target_switch
-    else:
+  # Mise à jour des compteurs
+  - service: input_number.set_value
+    target: {entity_id: "{{ compteur_25 }}"}
+    data: {value: "{{ count_25 if count_25 > 0 else 0 }}"}
+  - service: input_number.set_value
+    target: {entity_id: "{{ compteur_33 }}"}
+    data: {value: "{{ count_33 if count_33 > 0 else 0 }}"}
+  - service: input_number.set_value
+    target: {entity_id: "{{ compteur_66 }}"}
+    data: {value: "{{ count_66 if count_66 > 0 else 0 }}"}
+  - service: input_number.set_value
+    target: {entity_id: "{{ compteur_100 }}"}
+    data: {value: "{{ count_100 if count_100 > 0 else 0 }}"}
+    
+  # Activation / désactivation du switch
+  - choose:
+      - conditions: >
+          {{ count_25 >= seuil_activation
+             or count_33 >= seuil_activation
+             or count_66 >= seuil_activation
+             or count_100 >= seuil_activation }}
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ switch_cible }}"
+    default:
       - service: input_boolean.turn_off
         target:
-          entity_id: !input target_switch
-
-mode: single
+          entity_id: "{{ switch_cible }}"
