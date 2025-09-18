@@ -45,7 +45,7 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/1"  # Toutes les 5 minutes
+    minutes: "/5"  # Toutes les 5 minutes
 
 action:
   - alias: Récupération des paramètres
@@ -63,7 +63,7 @@ action:
         {% set values = [] %}
         {% for entity in input_numbers %}
           {% if states(entity) not in ['unknown', 'unavailable'] %}
-            {% set value = states(entity) | float(default=0) %}
+            {% set value = states(entity) | float(0) %}
             {% set values = values + [value] %}
           {% endif %}
         {% endfor %}
@@ -74,7 +74,7 @@ action:
       count_25: >-
         {% set count = 0 %}
         {% for value in input_values %}
-            {% if value >= 25 %}
+          {% if value >= 25 %}
             {% set count = count + 1 %}
           {% endif %}
         {% endfor %}
@@ -104,10 +104,10 @@ action:
         {% endfor %}
         {{ count }}
 
-  - alias: Mise à jour des compteurs de durée
+  - alias: Mise à jour du compteur 25%
     if:
       - condition: template
-        value_template: '{{ count_25_duration_entity is defined }}'
+        value_template: '{{ count_25_duration_entity in states }}'
     then:
       - service: input_number.set_value
         target:
@@ -115,7 +115,7 @@ action:
         data:
           value: >
             {% if count_25 >= 4 %}
-              {{ count_25_duration_entity  | int + 1 }}
+              {{ (states(count_25_duration_entity) | int) + 1 }}
             {% else %}
               0
             {% endif %}
@@ -123,7 +123,7 @@ action:
   - alias: Mise à jour du compteur 33%
     if:
       - condition: template
-        value_template: '{{ count_33_duration_entity is defined }}'
+        value_template: '{{ count_33_duration_entity in states }}'
     then:
       - service: input_number.set_value
         target:
@@ -131,7 +131,7 @@ action:
         data:
           value: >
             {% if count_33 >= 3 %}
-              {{ count_33_duration_entity | int + 1 }}
+              {{ (states(count_33_duration_entity) | int) + 1 }}
             {% else %}
               0
             {% endif %}
@@ -139,7 +139,7 @@ action:
   - alias: Mise à jour du compteur 66%
     if:
       - condition: template
-        value_template: '{{ count_66_duration_entity is defined }}'
+        value_template: '{{ count_66_duration_entity in states }}'
     then:
       - service: input_number.set_value
         target:
@@ -147,7 +147,7 @@ action:
         data:
           value: >
             {% if count_66 >= 2 %}
-              {{ count_66_duration_entity | int + 1 }}
+              {{ (states(count_66_duration_entity) | int) + 1 }}
             {% else %}
               0
             {% endif %}
@@ -155,7 +155,7 @@ action:
   - alias: Mise à jour du compteur 100%
     if:
       - condition: template
-        value_template: '{{ count_100_duration_entity is defined }}'
+        value_template: '{{ count_100_duration_entity in states }}'
     then:
       - service: input_number.set_value
         target:
@@ -163,7 +163,7 @@ action:
         data:
           value: >
             {% if count_100 >= 1 %}
-              {{ count_100_duration_entity | int + 1 }}
+              {{ (states(count_100_duration_entity) | int) + 1 }}
             {% else %}
               0
             {% endif %}
@@ -173,13 +173,13 @@ action:
       - condition: or
         conditions:
           - condition: template
-            value_template: '{{ count_25_duration_entity | int >= 5 }}'
+            value_template: '{{ states(count_25_duration_entity) | int >= 5 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity | int >= 10 }}'
+            value_template: '{{ states(count_25_duration_entity) | int >= 10 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity | int>= 15 }}'
+            value_template: '{{ states(count_25_duration_entity) | int >= 15 }}'
           - condition: template
-            value_template: '{{ count_25_duration_entity | int >= 20 }}'
+            value_template: '{{ states(count_25_duration_entity) | int >= 20 }}'
     then:
       - service: input_boolean.turn_on
         target:
