@@ -45,7 +45,7 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/5"  # Toutes les 5 minutes
+    minutes: "/1"  # Toutes les minutes
 
 action:
   - alias: Récupération des paramètres
