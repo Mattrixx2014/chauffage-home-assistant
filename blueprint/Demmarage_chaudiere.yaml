@@ -18,14 +18,22 @@ blueprint:
       selector:
         entity:
           domain: input_boolean
-    durations:
-      name: Entités de stockage des durées
-      description: Associer chaque seuil avec son entité compteur.
+    thresholds:
+      name: Seuils et compteurs
+      description: Liste des seuils et des entités compteurs associées
       default:
-        "25": ""
-        "33": ""
-        "66": ""
-        "100": ""
+        - seuil: 25
+          min_count: 4
+          entity: ""
+        - seuil: 33
+          min_count: 3
+          entity: ""
+        - seuil: 66
+          min_count: 2
+          entity: ""
+        - seuil: 100
+          min_count: 1
+          entity: ""
       selector:
         object:
 
@@ -36,7 +44,7 @@ trigger:
 variables:
   input_numbers: !input input_numbers
   target_switch: !input target_switch
-  durations: !input durations
+  thresholds: !input thresholds
 
   # On calcule toutes les valeurs d’entrée
   input_values: >-
@@ -50,23 +58,26 @@ variables:
 
   # On calcule combien dépassent chaque seuil
   counts: >-
-    {% set thresholds = [25, 33, 66, 100] %}
-    {% set ns = namespace(data={}) %}
+    {% set ns = namespace(data=[]) %}
     {% for t in thresholds %}
-      {% set c = input_values | select('>=', t) | list | count %}
-      {% set ns.data = dict(ns.data, **{t: c}) %}
+      {% set seuil = t.seuil | int %}
+      {% set c = input_values | select('>=', seuil) | list | count %}
+      {% set ns.data = ns.data + [{ "seuil": seuil, "count": c }] %}
     {% endfor %}
     {{ ns.data }}
 
 action:
   - alias: Mise à jour des compteurs de durée
     repeat:
-      for_each: "{{ durations | dict2items }}"
+      for_each: "{{ thresholds }}"
       sequence:
         - variables:
-            seuil: "{{ repeat.item.key | int }}"
-            entity: "{{ repeat.item.value }}"
-            count: "{{ counts[seuil] if seuil in counts else 0 }}"
+            seuil: "{{ repeat.item.seuil | int }}"
+            min_count: "{{ repeat.item.min_count | int }}"
+            entity: "{{ repeat.item.entity }}"
+            count: >-
+              {% set c = counts | selectattr('seuil','eq',repeat.item.seuil | int) | map(attribute='count') | first %}
+              {{ c if c is not none else 0 }}
         - choose:
             - conditions: "{{ entity != '' }}"
               sequence:
@@ -76,10 +87,7 @@ action:
                   data:
                     value: >-
                       {% set current = states(entity) | int(0) %}
-                      {% if (seuil == 25 and count >= 4)
-                            or (seuil == 33 and count >= 3)
-                            or (seuil == 66 and count >= 2)
-                            or (seuil == 100 and count >= 1) %}
+                      {% if count >= min_count %}
                         {{ current + 1 }}
                       {% else %}
                         0
@@ -87,12 +95,14 @@ action:
 
   - alias: Activation du switch
     if:
-      - condition: or
-        conditions:
-          - "{{ durations['25'] != '' and states(durations['25']) | int >= 5 }}"
-          - "{{ durations['25'] != '' and states(durations['25']) | int >= 10 }}"
-          - "{{ durations['25'] != '' and states(durations['25']) | int >= 15 }}"
-          - "{{ durations['25'] != '' and states(durations['25']) | int >= 20 }}"
+      - condition: template
+        value_template: >-
+          {% set entity_25 = (thresholds | selectattr('seuil','eq',25) | map(attribute='entity') | first) %}
+          {% if entity_25 %}
+            {{ states(entity_25) | int in [5,10,15,20] }}
+          {% else %}
+            false
+          {% endif %}
     then:
       - service: input_boolean.turn_on
         target:
