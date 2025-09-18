@@ -1,8 +1,8 @@
 blueprint:
-  name: Activation simultanée par seuils de pourcentage
+  name: Activation simultanée par seuils de pourcentage (optimisée)
   description: >-
     Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
-    Utilise des entités input_number pour stocker les compteurs de durée.
+    Optimisée pour éviter les répétitions de code.
   domain: automation
   input:
     input_numbers:
@@ -18,175 +18,88 @@ blueprint:
       selector:
         entity:
           domain: input_boolean
-    count_25_duration_entity:
-      name: Entité pour stocker la durée de la condition 25%
-      description: Entité input_number pour stocker count_25_duration.
+    durations:
+      name: Entités de stockage des durées
+      description: Associer chaque seuil avec son entité compteur.
+      default:
+        "25": ""
+        "33": ""
+        "66": ""
+        "100": ""
       selector:
-        entity:
-          domain: input_number
-    count_33_duration_entity:
-      name: Entité pour stocker la durée de la condition 33%
-      description: Entité input_number pour stocker count_33_duration.
-      selector:
-        entity:
-          domain: input_number
-    count_66_duration_entity:
-      name: Entité pour stocker la durée de la condition 66%
-      description: Entité input_number pour stocker count_66_duration.
-      selector:
-        entity:
-          domain: input_number
-    count_100_duration_entity:
-      name: Entité pour stocker la durée de la condition 100%
-      description: Entité input_number pour stocker count_100_duration.
-      selector:
-        entity:
-          domain: input_number
+        object:
 
 trigger:
   - platform: time_pattern
-    minutes: "/1"  # Toutes les minutes
+    minutes: "/5"  # toutes les 5 minutes
+
+variables:
+  input_numbers: !input input_numbers
+  target_switch: !input target_switch
+  durations: !input durations
+
+  # On calcule toutes les valeurs d’entrée
+  input_values: >-
+    {% set values = [] %}
+    {% for entity in input_numbers %}
+      {% if states(entity) not in ['unknown', 'unavailable'] %}
+        {% set values = values + [states(entity) | float(0)] %}
+      {% endif %}
+    {% endfor %}
+    {{ values }}
+
+  # On calcule combien dépassent chaque seuil
+  counts: >-
+    {% set thresholds = [25, 33, 66, 100] %}
+    {% set ns = namespace(data={}) %}
+    {% for t in thresholds %}
+      {% set c = input_values | select('>=', t) | list | count %}
+      {% set ns.data = dict(ns.data, **{t: c}) %}
+    {% endfor %}
+    {{ ns.data }}
 
 action:
-  - alias: Récupération des paramètres
-    variables:
-      input_numbers: !input input_numbers
-      target_switch: !input target_switch
-      count_25_duration_entity: !input count_25_duration_entity
-      count_33_duration_entity: !input count_33_duration_entity
-      count_66_duration_entity: !input count_66_duration_entity
-      count_100_duration_entity: !input count_100_duration_entity
-
-  - alias: Récupération des données
-    variables:
-      input_values: >-
-        {% set values = [] %}
-        {% for entity in input_numbers %}
-          {% if states(entity) not in ['unknown', 'unavailable'] %}
-            {% set value = states(entity) | float(0) %}
-            {% set values = values + [value] %}
-          {% endif %}
-        {% endfor %}
-        {{ values }}
-
-  - alias: Compter les entrées dépassant les seuils
-    variables:
-      count_25: >-
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 25 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-      count_33: >-
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 33 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-      count_66: >-
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value >= 66 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-      count_100: >-
-        {% set count = 0 %}
-        {% for value in input_values %}
-          {% if value == 100 %}
-            {% set count = count + 1 %}
-          {% endif %}
-        {% endfor %}
-        {{ count }}
-
-  - alias: Mise à jour du compteur 25%
-    if:
-      - condition: template
-        value_template: '{{ count_25_duration_entity in states }}'
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_25_duration_entity
-        data:
-          value: >
-            {% if count_25 >= 4 %}
-              {{ (states(count_25_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 33%
-    if:
-      - condition: template
-        value_template: '{{ count_33_duration_entity in states }}'
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_33_duration_entity
-        data:
-          value: >
-            {% if count_33 >= 3 %}
-              {{ (states(count_33_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 66%
-    if:
-      - condition: template
-        value_template: '{{ count_66_duration_entity in states }}'
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_66_duration_entity
-        data:
-          value: >
-            {% if count_66 >= 2 %}
-              {{ (states(count_66_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
-
-  - alias: Mise à jour du compteur 100%
-    if:
-      - condition: template
-        value_template: '{{ count_100_duration_entity in states }}'
-    then:
-      - service: input_number.set_value
-        target:
-          entity_id: !input count_100_duration_entity
-        data:
-          value: >
-            {% if count_100 >= 1 %}
-              {{ (states(count_100_duration_entity) | int) + 1 }}
-            {% else %}
-              0
-            {% endif %}
+  - alias: Mise à jour des compteurs de durée
+    repeat:
+      for_each: "{{ durations | dict2items }}"
+      sequence:
+        - variables:
+            seuil: "{{ repeat.item.key | int }}"
+            entity: "{{ repeat.item.value }}"
+            count: "{{ counts[seuil] if seuil in counts else 0 }}"
+        - choose:
+            - conditions: "{{ entity != '' }}"
+              sequence:
+                - service: input_number.set_value
+                  target:
+                    entity_id: "{{ entity }}"
+                  data:
+                    value: >-
+                      {% set current = states(entity) | int(0) %}
+                      {% if (seuil == 25 and count >= 4)
+                            or (seuil == 33 and count >= 3)
+                            or (seuil == 66 and count >= 2)
+                            or (seuil == 100 and count >= 1) %}
+                        {{ current + 1 }}
+                      {% else %}
+                        0
+                      {% endif %}
 
   - alias: Activation du switch
     if:
       - condition: or
         conditions:
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 5 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 10 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 15 }}'
-          - condition: template
-            value_template: '{{ states(count_25_duration_entity) | int >= 20 }}'
+          - "{{ durations['25'] != '' and states(durations['25']) | int >= 5 }}"
+          - "{{ durations['25'] != '' and states(durations['25']) | int >= 10 }}"
+          - "{{ durations['25'] != '' and states(durations['25']) | int >= 15 }}"
+          - "{{ durations['25'] != '' and states(durations['25']) | int >= 20 }}"
     then:
       - service: input_boolean.turn_on
         target:
-          entity_id: !input target_switch
+          entity_id: "{{ target_switch }}"
     else:
       - service: input_boolean.turn_off
         target:
-          entity_id: !input target_switch
+          entity_id: "{{ target_switch }}"
 
 mode: single
