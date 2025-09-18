@@ -45,11 +45,20 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/1"  # Toutes les 5 minutes
+    minutes: "/5"  # Toutes les 5 minutes
 
 action:
-  - variables:
-      # Récupère les valeurs des entrées (avec gestion des erreurs)
+  - alias: Récupération des paramètres
+    variables:
+      input_numbers: !input input_numbers
+      target_switch: !input target_switch
+      count_25_duration_entity: !input count_25_duration_entity
+      count_33_duration_entity: !input count_33_duration_entity
+      count_66_duration_entity: !input count_66_duration_entity
+      count_100_duration_entity: !input count_100_duration_entity
+
+  - alias: Récupération des données
+    variables:
       input_values: >
         {% set values = [] %}
         {% for entity in input_numbers %}
@@ -60,7 +69,8 @@ action:
         {% endfor %}
         {{ values }}
 
-      # Compte le nombre d'entrées qui dépassent les seuils
+  - alias: Compter les entrées dépassant les seuils
+    variables:
       count_25: >
         {% set count = 0 %}
         {% for value in input_values %}
@@ -69,7 +79,6 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-
       count_33: >
         {% set count = 0 %}
         {% for value in input_values %}
@@ -78,7 +87,6 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-
       count_66: >
         {% set count = 0 %}
         {% for value in input_values %}
@@ -87,7 +95,6 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-
       count_100: >
         {% set count = 0 %}
         {% for value in input_values %}
@@ -97,37 +104,17 @@ action:
         {% endfor %}
         {{ count }}
 
-  # Récupère les valeurs actuelles des compteurs de durée
-  - variables:
-      current_count_25_duration: >
-        {% if count_25_duration_entity is defined and count_25_duration_entity in states %}
-          {{ states(count_25_duration_entity) | int(default=0) }}
-        {% else %}
-          0
-        {% endif %}
-      current_count_33_duration: >
-        {% if count_33_duration_entity is defined and count_33_duration_entity in states %}
-          {{ states(count_33_duration_entity) | int(default=0) }}
-        {% else %}
-          0
-        {% endif %}
-      current_count_66_duration: >
-        {% if count_66_duration_entity is defined and count_66_duration_entity in states %}
-          {{ states(count_66_duration_entity) | int(default=0) }}
-        {% else %}
-          0
-        {% endif %}
-      current_count_100_duration: >
-        {% if count_100_duration_entity is defined and count_100_duration_entity in states %}
-          {{ states(count_100_duration_entity) | int(default=0) }}
-        {% else %}
-          0
-        {% endif %}
+  - alias: Récupération des compteurs de durée
+    variables:
+      current_count_25_duration: '{{ states(count_25_duration_entity) | default(0) | int }}'
+      current_count_33_duration: '{{ states(count_33_duration_entity) | default(0) | int }}'
+      current_count_66_duration: '{{ states(count_66_duration_entity) | default(0) | int }}'
+      current_count_100_duration: '{{ states(count_100_duration_entity) | default(0) | int }}'
 
-  # Met à jour les compteurs de durée pour chaque condition
-  - if:
+  - alias: Mise à jour des compteurs de durée
+    if:
       - condition: template
-        value_template: "{{ count_25_duration_entity is defined and count_25_duration_entity in states }}"
+        value_template: "{{ count_25_duration_entity is defined }}"
     then:
       - service: input_number.set_value
         target:
@@ -135,14 +122,15 @@ action:
         data:
           value: >
             {% if count_25 >= 4 %}
-              {{ current_count_25_duration + 1 }}
+              {{ current_count_25_duration + 5 }}
             {% else %}
               0
             {% endif %}
 
-  - if:
+  - alias: Mise à jour du compteur 33%
+    if:
       - condition: template
-        value_template: "{{ count_33_duration_entity is defined and count_33_duration_entity in states }}"
+        value_template: "{{ count_33_duration_entity is defined }}"
     then:
       - service: input_number.set_value
         target:
@@ -150,14 +138,15 @@ action:
         data:
           value: >
             {% if count_33 >= 3 %}
-              {{ current_count_33_duration + 1 }}
+              {{ current_count_33_duration + 5 }}
             {% else %}
               0
             {% endif %}
 
-  - if:
+  - alias: Mise à jour du compteur 66%
+    if:
       - condition: template
-        value_template: "{{ count_66_duration_entity is defined and count_66_duration_entity in states }}"
+        value_template: "{{ count_66_duration_entity is defined }}"
     then:
       - service: input_number.set_value
         target:
@@ -165,14 +154,15 @@ action:
         data:
           value: >
             {% if count_66 >= 2 %}
-              {{ current_count_66_duration + 1 }}
+              {{ current_count_66_duration + 5 }}
             {% else %}
               0
             {% endif %}
 
-  - if:
+  - alias: Mise à jour du compteur 100%
+    if:
       - condition: template
-        value_template: "{{ count_100_duration_entity is defined and count_100_duration_entity in states }}"
+        value_template: "{{ count_100_duration_entity is defined }}"
     then:
       - service: input_number.set_value
         target:
@@ -180,13 +170,13 @@ action:
         data:
           value: >
             {% if count_100 >= 1 %}
-              {{ current_count_100_duration + 1 }}
+              {{ current_count_100_duration + 5 }}
             {% else %}
               0
             {% endif %}
 
-  # Vérifie si les conditions sont remplies et active le switch si nécessaire
-  - if:
+  - alias: Activation du switch
+    if:
       - condition: or
         conditions:
           - condition: template
