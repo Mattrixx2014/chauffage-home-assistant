@@ -173,13 +173,13 @@ action:
       - condition: or
         conditions:
           - condition: template
-            value_template: "{{ current_count_100_duration >= 5 }}"
+            value_template: "{{ count_100_duration >= 5 }}"
           - condition: template
-            value_template: "{{ current_count_66_duration >= 10 }}"
+            value_template: "{{ count_66_duration >= 10 }}"
           - condition: template
-            value_template: "{{ current_count_33_duration >= 15 }}"
+            value_template: "{{ count_33_duration >= 15 }}"
           - condition: template
-            value_template: "{{ current_count_25_duration >= 20 }}"
+            value_template: "{{ count_25_duration >= 20 }}"
     then:
       - service: input_boolean.turn_on
         target:
