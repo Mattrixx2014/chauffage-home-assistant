@@ -1,6 +1,6 @@
 blueprint:
   name: Activation simultanée par seuils de pourcentage
-  description: >
+  description: >-
     Active un switch en vérifiant simultanément toutes les conditions à intervalles réguliers.
     Utilise des entités input_number pour stocker les compteurs de durée.
   domain: automation
@@ -45,7 +45,7 @@ blueprint:
 
 trigger:
   - platform: time_pattern
-    minutes: "/5"  # Toutes les 5 minutes
+    minutes: "/1"  # Toutes les 5 minutes
 
 action:
   - alias: Récupération des paramètres
@@ -59,7 +59,7 @@ action:
 
   - alias: Récupération des données
     variables:
-      input_values: >
+      input_values: >-
         {% set values = [] %}
         {% for entity in input_numbers %}
           {% if states(entity) not in ['unknown', 'unavailable'] %}
@@ -71,7 +71,7 @@ action:
 
   - alias: Compter les entrées dépassant les seuils
     variables:
-      count_25: >
+      count_25: >-
         {% set count = 0 %}
         {% for value in input_values %}
           {% if value >= 25 %}
@@ -79,7 +79,7 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-      count_33: >
+      count_33: >-
         {% set count = 0 %}
         {% for value in input_values %}
           {% if value >= 33 %}
@@ -87,7 +87,7 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-      count_66: >
+      count_66: >-
         {% set count = 0 %}
         {% for value in input_values %}
           {% if value >= 66 %}
@@ -95,7 +95,7 @@ action:
           {% endif %}
         {% endfor %}
         {{ count }}
-      count_100: >
+      count_100: >-
         {% set count = 0 %}
         {% for value in input_values %}
           {% if value == 100 %}
@@ -120,9 +120,9 @@ action:
         target:
           entity_id: !input count_25_duration_entity
         data:
-          value: >
+          value: >-
             {% if count_25 >= 4 %}
-              {{ current_count_25_duration + 5 }}
+              {{ current_count_25_duration + 1 }}
             {% else %}
               0
             {% endif %}
@@ -136,9 +136,9 @@ action:
         target:
           entity_id: !input count_33_duration_entity
         data:
-          value: >
+          value: >-
             {% if count_33 >= 3 %}
-              {{ current_count_33_duration + 5 }}
+              {{ current_count_33_duration + 1 }}
             {% else %}
               0
             {% endif %}
@@ -152,9 +152,9 @@ action:
         target:
           entity_id: !input count_66_duration_entity
         data:
-          value: >
+          value: >-
             {% if count_66 >= 2 %}
-              {{ current_count_66_duration + 5 }}
+              {{ current_count_66_duration + 1 }}
             {% else %}
               0
             {% endif %}
@@ -168,9 +168,9 @@ action:
         target:
           entity_id: !input count_100_duration_entity
         data:
-          value: >
+          value: >-
             {% if count_100 >= 1 %}
-              {{ current_count_100_duration + 5 }}
+              {{ current_count_100_duration + 1 }}
             {% else %}
               0
             {% endif %}
