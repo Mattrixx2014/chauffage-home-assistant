@@ -71,22 +71,30 @@ action:
   - variables:
       count_25: >
         {{ expand(surveilles)
-           | selectattr('state','not in',['unknown','unavailable'])
+           | selectattr('state','defined')
+           | selectattr('state','!=','unknown')
+           | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
            | select('>',25) | list | count }}
       count_33: >
         {{ expand(surveilles)
-           | selectattr('state','not in',['unknown','unavailable'])
+           | selectattr('state','defined')
+           | selectattr('state','!=','unknown')
+           | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
            | select('>',33) | list | count }}
       count_66: >
         {{ expand(surveilles)
-           | selectattr('state','not in',['unknown','unavailable'])
+           | selectattr('state','defined')
+           | selectattr('state','!=','unknown')
+           | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
            | select('>',66) | list | count }}
       count_100: >
         {{ expand(surveilles)
-           | selectattr('state','not in',['unknown','unavailable'])
+           | selectattr('state','defined')
+           | selectattr('state','!=','unknown')
+           | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
            | select('>=',100) | list | count }}
 
