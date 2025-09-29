@@ -7,7 +7,7 @@ blueprint:
   input:
     coeff_c:
       name: Coefficient C
-      description: coefficient multiplicateur de la différence entre la consigne et éa température intérieure pour le calcul de la puissance (0.6 conseillé)
+      description: coefficient multiplicateur de la différence entre la consigne et la température intérieure pour le calcul de la puissance (0.6 conseillé)
       selector:
         number:
           min: 0.0
@@ -15,12 +15,36 @@ blueprint:
           step: 0.01
     coeff_t:
       name: Coefficient T
-      description: coefficient multiplicateur de la différence entre la consigne et éa température extérieure pour le calcul de la puissance (0.01 conseillé)
+      description: coefficient multiplicateur de la différence entre la consigne et la température extérieure pour le calcul de la puissance (0.01 conseillé)
       selector:
         number:
           min: 0.0
           max: 0.1
           step: 0.001
+    coeff_vo:
+      name: Coefficient vanne offset
+      description: coefficient multiplicateur de la différence entre la température de référence et la température de la pièce
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.01
+    coeff_vr:
+      name: temperature ref
+      description: température de référence pour offset vanne
+      selector:
+        number:
+          min: 0
+          max: 50
+          step: 1
+    coeff_vc:
+      name: Coefficient Correction ouverture 
+      description: coefficient de correction du temps de commande d ouverture a la température de référence 
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.01
     entity_consigne:
       name: Consigne
       description: Champs d'entrée de la température de consigne (input number).
@@ -65,6 +89,9 @@ blueprint:
 variables:
   coeff_c: !input coeff_c
   coeff_t: !input coeff_t
+  coeff_vo: !input coeff_vo
+  coeff_vr: !input coeff_vr
+  coeff_vc: !input coeff_vc
   entity_temp_int: !input entity_temp_int
   entity_temp_ext: !input entity_temp_ext
   entity_fenetre: !input entity_fenetre
