@@ -1,0 +1,240 @@
+blueprint:
+  name: Surveillance multi-seuils avec activation de switch
+  description: >
+    Surveille une liste d'input_number représentant des pourcentages,
+    incrémente ou remet à zéro des compteurs selon les seuils atteints,
+    et active/désactive un input_boolean cible si les conditions sont réunies.
+  domain: automation
+  input:
+    monitored_entities:
+      name: Entités surveillées
+      description: Liste des input_number représentant des pourcentages
+      selector:
+        entity:
+          domain: input_number
+          multiple: true
+
+    switch_target:
+      name: Switch cible
+      description: input_boolean à activer/désactiver
+      selector:
+        entity:
+          domain: input_boolean
+
+    seuil1_value:
+      name: Seuil 1 (%)
+      default: 25
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    seuil1_counter:
+      name: Compteur seuil 1
+      selector:
+        entity:
+          domain: input_number
+
+    seuil2_value:
+      name: Seuil 2 (%)
+      default: 50
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    seuil2_counter:
+      name: Compteur seuil 2
+      selector:
+        entity:
+          domain: input_number
+
+    seuil3_value:
+      name: Seuil 3 (%)
+      default: 75
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    seuil3_counter:
+      name: Compteur seuil 3
+      selector:
+        entity:
+          domain: input_number
+
+    seuil4_value:
+      name: Seuil 4 (%)
+      default: 90
+      selector:
+        number:
+          min: 0
+          max: 100
+          step: 1
+
+    seuil4_counter:
+      name: Compteur seuil 4
+      selector:
+        entity:
+          domain: input_number
+
+    seuil_global:
+      name: Seuil global (somme en %)
+      default: 150
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 1
+
+    seuil1_activation:
+      name: Valeur de compteur seuil 1 pour activer
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+
+    seuil2_activation:
+      name: Valeur de compteur seuil 2 pour activer
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+
+    seuil3_activation:
+      name: Valeur de compteur seuil 3 pour activer
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+
+    seuil4_activation:
+      name: Valeur de compteur seuil 4 pour activer
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+
+trigger:
+  - platform: time_pattern
+    minutes: "/1"
+
+variables:
+  entities: !input monitored_entities
+  s1: !input seuil1_value
+  s2: !input seuil2_value
+  s3: !input seuil3_value
+  s4: !input seuil4_value
+  c1: !input seuil1_counter
+  c2: !input seuil2_counter
+  c3: !input seuil3_counter
+  c4: !input seuil4_counter
+  seuil_global: !input seuil_global
+  act1: !input seuil1_activation
+  act2: !input seuil2_activation
+  act3: !input seuil3_activation
+  act4: !input seuil4_activation
+  switch: !input switch_target
+
+action:
+  - variables:
+      # On filtre les valeurs valides uniquement
+      values: >
+        {% set vals = [] %}
+        {% for e in entities %}
+          {% set v = states(e) %}
+          {% if v not in ['unknown','unavailable','none','None',''] %}
+            {% set vals = vals + [ v | float ] %}
+          {% endif %}
+        {% endfor %}
+        {{ vals }}
+      somme: "{{ values | sum }}"
+
+      # compte combien dépassent les seuils
+      count_s1: "{{ values | select('>', s1) | list | length }}"
+      count_s2: "{{ values | select('>', s2) | list | length }}"
+      count_s3: "{{ values | select('>', s3) | list | length }}"
+      count_s4: "{{ values | select('>', s4) | list | length }}"
+
+  - choose:
+      - conditions: "{{ count_s1 > 0 }}"
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c1 }}" }
+            data:
+              value: "{{ (states(c1)|float(0)) + 1 }}"
+      - conditions: []
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c1 }}" }
+            data: { value: 0 }
+
+  - choose:
+      - conditions: "{{ count_s2 > 0 }}"
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c2 }}" }
+            data:
+              value: "{{ (states(c2)|float(0)) + 1 }}"
+      - conditions: []
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c2 }}" }
+            data: { value: 0 }
+
+  - choose:
+      - conditions: "{{ count_s3 > 0 }}"
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c3 }}" }
+            data:
+              value: "{{ (states(c3)|float(0)) + 1 }}"
+      - conditions: []
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c3 }}" }
+            data: { value: 0 }
+
+  - choose:
+      - conditions: "{{ count_s4 > 0 }}"
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c4 }}" }
+            data:
+              value: "{{ (states(c4)|float(0)) + 1 }}"
+      - conditions: []
+        sequence:
+          - service: input_number.set_value
+            target: { entity_id: "{{ c4 }}" }
+            data: { value: 0 }
+
+  - choose:
+      - conditions: >
+          {{ somme > seuil_global
+             and (
+               states(c1)|float(0) >= act1
+               or states(c2)|float(0) >= act2
+               or states(c3)|float(0) >= act3
+               or states(c4)|float(0) >= act4
+             )
+          }}
+        sequence:
+          - service: input_boolean.turn_on
+            target: { entity_id: "{{ switch }}" }
+      - conditions: []
+        sequence:
+          - service: input_boolean.turn_off
+            target: { entity_id: "{{ switch }}" }
+
+mode: single
