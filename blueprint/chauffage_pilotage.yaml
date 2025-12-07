@@ -35,7 +35,7 @@ blueprint:
       selector:
         entity:
           domain: switch
-    entity_schedule_eco_week-end:
+    entity_schedule_eco_week_end:
       name: Planificateur mode eco week-end
       description: Entité générée par schedule pour la planification du mode eco (switch)
       selector:
@@ -79,7 +79,7 @@ action:
               entity_id:
                 - !input entity_schedule_eco_week
                 - !input entity_schedule_confort_week
-                - !input entity_schedule_eco_week-end
+                - !input entity_schedule_eco_week_end
                 - !input entity_schedule_confort_week-end
           - service: automation.turn_off
             target:
@@ -103,7 +103,7 @@ action:
               entity_id:
                 - !input entity_schedule_eco_week
                 - !input entity_schedule_confort_week
-                - !input entity_schedule_eco_week-end
+                - !input entity_schedule_eco_week_end
                 - !input entity_schedule_confort_week-end
       # ----- Mode Auto - confort
       - conditions:
@@ -123,7 +123,7 @@ action:
             target:
               entity_id:
                 - !input entity_schedule_eco_week
-                - !input entity_schedule_eco_week-end
+                - !input entity_schedule_eco_week_end
       # ----- Mode Auto - eco ou absent
       - conditions:
           - condition: or
@@ -147,7 +147,7 @@ action:
             target:
               entity_id: 
                 - !input entity_schedule_eco_week
-                - !input entity_schedule_eco_week-end
+                - !input entity_schedule_eco_week_end
     # ----- Mode manuel
     default:
       - service: switch.turn_off
@@ -155,10 +155,11 @@ action:
           entity_id:
             - !input entity_schedule_eco_week
             - !input entity_schedule_confort_week
-            - !input entity_schedule_eco_week-end
+            - !input entity_schedule_eco_week_end
             - !input entity_schedule_confort_week-end
       - service: automation.turn_on
         target:
           entity_id: !input entity_thermostat_tpi
 mode: single
+
 
