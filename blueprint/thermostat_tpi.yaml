@@ -128,7 +128,7 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: '{{puissance == 0}}'
+            value_template: '{{puissance < 5}}'
         sequence:
           - service: switch.turn_off
             target:
