@@ -17,7 +17,7 @@ blueprint:
       description: Input_boolean à activer/désactiver
       selector:
         entity:
-          domain: input_boolean
+          domain: input_switch
     compteur_20:
       name: Compteur 20%
       selector:
