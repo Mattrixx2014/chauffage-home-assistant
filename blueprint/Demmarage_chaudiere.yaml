@@ -1,7 +1,7 @@
 blueprint:
   name: Surveiller des pourcentages et activer un switch (seuils individuels)
   description: >
-    Surveille une liste d’input_number (en %) et incrémente des compteurs selon les seuils (25, 33, 66, 100).
+    Surveille une liste d’input_number (en %) et incrémente des compteurs selon les seuils (20, 30, 50, 75).
     Active ou désactive un input_boolean cible en fonction des compteurs et des seuils d'activation individuels.
   domain: automation
   input:
@@ -18,58 +18,58 @@ blueprint:
       selector:
         entity:
           domain: input_boolean
-    compteur_25:
-      name: Compteur 25%
+    compteur_20:
+      name: Compteur 20%
       selector:
         entity:
           domain: input_number
-    seuil_activation_25:
-      name: Seuil d’activation 25%
-      description: Nombre minimum d’entités >25% pour activer le switch
+    seuil_activation_20:
+      name: Seuil d’activation 20%
+      description: Nombre minimum d’entités >20% pour activer le switch
       default: 1
       selector:
         number:
           min: 1
-          max: 100
+          max: 75
           step: 1
-    compteur_33:
-      name: Compteur 33%
+    compteur_30:
+      name: Compteur 30%
       selector:
         entity:
           domain: input_number
-    seuil_activation_33:
-      name: Seuil d’activation 33%
+    seuil_activation_30:
+      name: Seuil d’activation 30%
       default: 1
       selector:
         number:
           min: 1
-          max: 100
+          max: 75
           step: 1
-    compteur_66:
-      name: Compteur 66%
+    compteur_50:
+      name: Compteur 50%
       selector:
         entity:
           domain: input_number
-    seuil_activation_66:
-      name: Seuil d’activation 66%
+    seuil_activation_50:
+      name: Seuil d’activation 50%
       default: 1
       selector:
         number:
           min: 1
-          max: 100
+          max: 75
           step: 1
-    compteur_100:
-      name: Compteur 100%
+    compteur_75:
+      name: Compteur 75%
       selector:
         entity:
           domain: input_number
-    seuil_activation_100:
-      name: Seuil d’activation 100%
+    seuil_activation_75:
+      name: Seuil d’activation 75%
       default: 1
       selector:
         number:
           min: 1
-          max: 100
+          max: 75
           step: 1
 
 mode: restart
@@ -82,67 +82,67 @@ variables:
   surveilles: !input surveilles
   switch_cible: !input switch_cible
 
-  compteur_25: !input compteur_25
-  seuil_25: !input seuil_activation_25
-  compteur_33: !input compteur_33
-  seuil_33: !input seuil_activation_33
-  compteur_66: !input compteur_66
-  seuil_66: !input seuil_activation_66
-  compteur_100: !input compteur_100
-  seuil_100: !input seuil_activation_100
+  compteur_20: !input compteur_20
+  seuil_20: !input seuil_activation_20
+  compteur_30: !input compteur_30
+  seuil_30: !input seuil_activation_30
+  compteur_50: !input compteur_50
+  seuil_50: !input seuil_activation_50
+  compteur_75: !input compteur_75
+  seuil_75: !input seuil_activation_75
 
 action:
   - variables:
-      count_25: >
+      count_20: >
         {{ expand(surveilles)
            | selectattr('state','defined')
            | selectattr('state','!=','unknown')
            | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
-           | select('>',25) | list | count }}
-      count_33: >
+           | select('>',20) | list | count }}
+      count_30: >
         {{ expand(surveilles)
            | selectattr('state','defined')
            | selectattr('state','!=','unknown')
            | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
-           | select('>',33) | list | count }}
-      count_66: >
+           | select('>',30) | list | count }}
+      count_50: >
         {{ expand(surveilles)
            | selectattr('state','defined')
            | selectattr('state','!=','unknown')
            | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
-           | select('>',66) | list | count }}
-      count_100: >
+           | select('>',50) | list | count }}
+      count_75: >
         {{ expand(surveilles)
            | selectattr('state','defined')
            | selectattr('state','!=','unknown')
            | selectattr('state','!=','unavailable')
            | map(attribute='state') | map('float')
-           | select('>=',100) | list | count }}
+           | select('>=',75) | list | count }}
 
   # Mise à jour des compteurs
   - service: input_number.set_value
-    target: {entity_id: "{{ compteur_25 }}"}
-    data: {value: "{{ count_25 if count_25 > 0 else 0 }}"}
+    target: {entity_id: "{{ compteur_20 }}"}
+    data: {value: "{{ count_20 if count_20 > 0 else 0 }}"}
   - service: input_number.set_value
-    target: {entity_id: "{{ compteur_33 }}"}
-    data: {value: "{{ count_33 if count_33 > 0 else 0 }}"}
+    target: {entity_id: "{{ compteur_30 }}"}
+    data: {value: "{{ count_30 if count_30 > 0 else 0 }}"}
   - service: input_number.set_value
-    target: {entity_id: "{{ compteur_66 }}"}
-    data: {value: "{{ count_66 if count_66 > 0 else 0 }}"}
+    target: {entity_id: "{{ compteur_50 }}"}
+    data: {value: "{{ count_50 if count_50 > 0 else 0 }}"}
   - service: input_number.set_value
-    target: {entity_id: "{{ compteur_100 }}"}
-    data: {value: "{{ count_100 if count_100 > 0 else 0 }}"}
+    target: {entity_id: "{{ compteur_75 }}"}
+    data: {value: "{{ count_75 if count_75 > 0 else 0 }}"}
     
   # Activation / désactivation du switch avec seuils individuels
   - choose:
       - conditions: >
-          {{ count_25 >= seuil_25
-             or count_33 >= seuil_33
-             or count_66 >= seuil_66
-             or count_100 >= seuil_100 }}
+          {{ count_20 >= seuil_20
+             or count_30 >= seuil_30
+             or count_50 >= seuil_50
+             or count_75 >= seuil_75 }}
         sequence:
           - service: switch.turn_on
             target:
